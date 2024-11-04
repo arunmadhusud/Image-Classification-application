@@ -1,0 +1,25 @@
+# Build stage
+FROM python:3.8-slim AS builder
+
+WORKDIR /app
+
+# Install the packages directly in the Dockerfile
+RUN pip install --user --no-cache-dir fastapi[standard] Pillow \
+    torch==2.1.0 torchvision==0.16.0 --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Final stage
+FROM python:3.8-slim
+
+WORKDIR /app
+# Copy the installed packages from the builder stage
+COPY --from=builder /root/.local /root/.local  
+# Copy the model and the code
+COPY model_service.py resnet18.pth imagenet_classes.txt ./
+
+# Add the local user's binary directory to the path
+ENV PATH=/root/.local/bin:$PATH
+
+EXPOSE 80
+
+# fastapi run api_service.py --port 8000
+CMD ["fastapi", "run", "model_service.py", "--port", "80"]
